@@ -139,66 +139,93 @@ ipcMain.on('run-nslookup', (event, { url, dnsServers }) => {
         dnsIndex: index
       });
       
-      // Extract IPs from nslookup result - improve the extraction logic
-      // Parse the output more carefully to exclude the DNS server IPs
-      
-      // Split output into lines
+      // Extract IPs from nslookup result
       const lines = stdout.split('\n');
-      let foundNonAuthoritativeAnswer = false;
-      let foundAddressesSection = false;
       
-      // Find the "Non-authoritative answer:" section which contains our target IPs
+      // Flag to indicate when we've found the "Addresses:" section
+      let inAddressesSection = false;
+      
       for (const line of lines) {
-        if (line.includes("Non-authoritative answer:")) {
-          foundNonAuthoritativeAnswer = true;
+        // Skip DNS server info
+        if (line.startsWith('Server:') || line.startsWith('Address:  ' + dns)) {
           continue;
         }
         
-        // After finding the section, look for Address lines
-        if (foundNonAuthoritativeAnswer) {
-          if (line.includes("Address:")) {
-            foundAddressesSection = true;
-            // Extract the IP from the line
-            const ipMatch = line.match(/Address:\s+([^\s]+)/);
-            if (ipMatch && ipMatch[1]) {
-              const ip = ipMatch[1];
-              // Skip the DNS server IP
-              if (ip !== dns) {
-                uniqueIPs.add(ip);
-              }
-            }
+        // Look for the line with 'Addresses:' to start capturing IPs
+        if (line.includes('Addresses:')) {
+          inAddressesSection = true;
+          
+          // Extract IPv6 address if it's on the same line
+          const ipv6Match = line.match(/Addresses:\s+([0-9a-f:]+)/);
+          if (ipv6Match && ipv6Match[1]) {
+            uniqueIPs.add(ipv6Match[1]);
           }
-          // If we've found addresses and hit an empty line, we're done with this section
-          else if (foundAddressesSection && line.trim() === '') {
-            foundAddressesSection = false;
+          
+          continue;
+        }
+        
+        // After finding the Addresses section, extract IPs from indented lines
+        if (inAddressesSection && line.trim().startsWith('2')) {
+          // IPv6 address (starts with 2)
+          const ipv6 = line.trim();
+          uniqueIPs.add(ipv6);
+        } else if (inAddressesSection && /^\s+\d+\.\d+\.\d+\.\d+/.test(line)) {
+          // IPv4 address
+          const ipv4 = line.trim();
+          uniqueIPs.add(ipv4);
+        }
+        
+        // Also check for 'Address:' lines which contain a single IP
+        if (line.includes('Address:') && !line.startsWith('Server:')) {
+          const ipMatch = line.match(/Address:\s+([0-9a-f:.]+)/);
+          if (ipMatch && ipMatch[1] && ipMatch[1] !== dns) {
+            uniqueIPs.add(ipMatch[1]);
           }
+        }
+        
+        // Handle the "Name:" line which might include IP information in some formats
+        if (line.includes('Name:')) {
+          // Move to the next line as IP information is often on the next line
+          inAddressesSection = true;
         }
       }
       
-      // Fallback to regex extraction if no IPs were found using the more structured approach
-      if (!foundNonAuthoritativeAnswer || uniqueIPs.size === 0) {
+      // Fallback to regex for specific patterns if no IPs were found
+      if (uniqueIPs.size === 0) {
         console.log("Using fallback regex extraction for IPs");
-        const ipv4Regex = /Address:\s+(\d+\.\d+\.\d+\.\d+)/g;
-        const ipv6Regex = /Address:\s+([0-9a-f:]+)/g;
+        
+        // Regex for IPv4 addresses
+        const ipv4Regex = /\b(?:\d{1,3}\.){3}\d{1,3}\b/g;
+        // More comprehensive IPv6 regex
+        const ipv6Regex = /(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))/g;
         
         let match;
-        let skipFirstAddress = true; // Skip the first address which is usually the DNS server
+        const foundIPs = new Set();
         
+        // Extract all IPv4 addresses
         while ((match = ipv4Regex.exec(stdout)) !== null) {
-          if (skipFirstAddress) {
-            skipFirstAddress = false;
-            continue;
-          }
-          if (match[1] !== dns) {
-            uniqueIPs.add(match[1]);
+          const ip = match[0];
+          // Skip DNS server IPs and local addresses
+          if (ip !== dns && !ip.startsWith('127.') && !ip.startsWith('0.0.0.')) {
+            foundIPs.add(ip);
           }
         }
         
+        // Extract all IPv6 addresses
         while ((match = ipv6Regex.exec(stdout)) !== null) {
-          if (match[1] !== dns) {
-            uniqueIPs.add(match[1]);
+          const ip = match[0];
+          if (ip !== dns) {
+            foundIPs.add(ip);
           }
         }
+        
+        // Filter out DNS server IPs
+        dnsServers.forEach(dnsIP => {
+          foundIPs.delete(dnsIP);
+        });
+        
+        // Add the found IPs to our set
+        foundIPs.forEach(ip => uniqueIPs.add(ip));
       }
       
       completedLookups++;

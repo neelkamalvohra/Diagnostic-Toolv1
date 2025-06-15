@@ -145,6 +145,30 @@ button {
   background-color: #2980b9;
 }
 
+/* Spinner for Run Button */
+.button-with-spinner {
+  position: relative;
+  padding-left: 40px !important; /* Make room for the spinner */
+}
+
+.button-spinner {
+  position: absolute;
+  left: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: translateY(-50%) rotate(0deg); }
+  100% { transform: translateY(-50%) rotate(360deg); }
+}
+
 #stopButton {
   background-color: #e74c3c;
   color: white;

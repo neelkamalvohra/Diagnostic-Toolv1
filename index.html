@@ -2,12 +2,12 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Network Diagnostic Tool</title>
+  <title>Website Logs Collection Tool</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <div class="container">
-    <h1>Network Diagnostic Tool</h1>
+    <h1>Website Logs Collection Tool</h1>
     
     <!-- Internet Status -->
     <div class="status-container">
@@ -33,11 +33,10 @@
       <div class="dns-servers">
         <div class="dns-entry">
           <input type="checkbox" id="dns1-check" checked>
-          <input type="text" id="dns1" value="8.8.8.8" class="dns-input">
-        </div>
+          <input type="text" id="dns1" value="8.8.8.8" class="dns-input">        </div>
         <div class="dns-entry">
           <input type="checkbox" id="dns2-check" checked>
-          <input type="text" id="dns2" value="4.4.4.4" class="dns-input">
+          <input type="text" id="dns2" value="8.8.4.4" class="dns-input">
         </div>
         <div class="dns-entry">
           <input type="checkbox" id="dns3-check" checked>
@@ -49,8 +48,7 @@
         </div>
       </div>
     </div>
-    
-    <!-- Action Buttons -->
+      <!-- Action Buttons -->
     <div class="button-container">
       <button id="runButton">Run Diagnostics</button>
       <button id="stopButton" disabled>Stop Diagnostics</button>

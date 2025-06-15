@@ -60,6 +60,8 @@ function runDiagnostics() {
   // Update UI
   isRunningDiagnostics = true;
   runButton.disabled = true;
+  runButton.classList.add('button-with-spinner');
+  runButton.innerHTML = '<span class="button-spinner"></span>Running...';
   stopButton.disabled = false;
   copyButton.disabled = true;
   progressStatus.textContent = '(Running...)';
@@ -122,6 +124,8 @@ function appendOutput(text) {
 function resetDiagnosticUI() {
   isRunningDiagnostics = false;
   runButton.disabled = false;
+  runButton.classList.remove('button-with-spinner');
+  runButton.textContent = 'Run Diagnostics';
   stopButton.disabled = true;
   progressStatus.textContent = '';
 }
@@ -169,7 +173,11 @@ ipcRenderer.on('nslookup-complete', (event, { uniqueIPs: ips }) => {
   }
   
   // Start tracert for each unique IP
-  appendOutput(`\nFound ${totalIPs} unique IP addresses: ${ips.join(', ')}\n`);
+  appendOutput(`\nFound ${totalIPs} unique IP addresses:`);
+  ips.forEach(ip => {
+    appendOutput(`  - ${ip}`);
+  });
+  
   appendOutput(`\nStarting traceroute and ping tests for each IP...\n`);
   
   ips.forEach(ip => {
