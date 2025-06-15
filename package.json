@@ -1,0 +1,25 @@
+{
+  "name": "network-diagnostic-tool",
+  "version": "1.0.0",
+  "description": "A tool for network diagnostics and website connectivity troubleshooting",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "package": "electron-packager . network-diagnostic-tool --platform=win32 --arch=x64 --out=dist/ --overwrite"
+  },
+  "keywords": [
+    "network",
+    "diagnostic",
+    "tool",
+    "connectivity",
+    "troubleshooting"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^36.4.0",
+    "electron-packager": "^17.1.2"
+  },
+  "dependencies": {}
+}

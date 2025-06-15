@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Network Diagnostic Tool</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Network Diagnostic Tool</h1>
+    
+    <!-- Internet Status -->
+    <div class="status-container">
+      <span>Internet Status:</span>
+      <div class="status-indicator" id="internetStatus"></div>
+    </div>
+    
+    <!-- Public IP Info -->
+    <div class="ip-info">
+      <div>Public IPv4: <span id="ipv4">Checking...</span></div>
+      <div>Public IPv6: <span id="ipv6">Checking...</span></div>
+    </div>
+    
+    <!-- URL Input -->
+    <div class="input-container">
+      <label for="urlInput">Enter website URL (e.g., example.com):</label>
+      <input type="text" id="urlInput" placeholder="example.com">
+    </div>
+    
+    <!-- DNS Servers Configuration -->
+    <div class="dns-container">
+      <h3>DNS Servers for nslookup</h3>
+      <div class="dns-servers">
+        <div class="dns-entry">
+          <input type="checkbox" id="dns1-check" checked>
+          <input type="text" id="dns1" value="8.8.8.8" class="dns-input">
+        </div>
+        <div class="dns-entry">
+          <input type="checkbox" id="dns2-check" checked>
+          <input type="text" id="dns2" value="4.4.4.4" class="dns-input">
+        </div>
+        <div class="dns-entry">
+          <input type="checkbox" id="dns3-check" checked>
+          <input type="text" id="dns3" value="1.1.1.1" class="dns-input">
+        </div>
+        <div class="dns-entry">
+          <input type="checkbox" id="dns4-check" checked>
+          <input type="text" id="dns4" value="9.9.9.9" class="dns-input">
+        </div>
+      </div>
+    </div>
+    
+    <!-- Action Buttons -->
+    <div class="button-container">
+      <button id="runButton">Run Diagnostics</button>
+      <button id="stopButton" disabled>Stop Diagnostics</button>
+      <button id="copyButton" disabled>Copy Results</button>
+    </div>
+    
+    <!-- Results Output -->
+    <div class="output-container">
+      <h3>Diagnostic Output <span id="progressStatus"></span></h3>
+      <pre id="outputArea"></pre>
+    </div>
+  </div>
+  
+  <script src="renderer.js"></script>
+</body>
+</html>

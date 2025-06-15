@@ -1,0 +1,22 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Start Application",
+      "type": "shell",
+      "command": "npm start",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Package Application",
+      "type": "shell",
+      "command": "npm run package",
+      "group": "build",
+      "problemMatcher": []
+    }
+  ]
+}
