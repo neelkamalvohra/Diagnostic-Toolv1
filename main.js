@@ -1,21 +1,23 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, webContents } = require('electron');
 const path = require('path');
 const { exec } = require('child_process');
 const os = require('os');
 const url = require('url');
+const fs = require('fs');
+const AdmZip = require('adm-zip');
 
 // Keep a global reference of the window object to prevent it from being garbage collected
 let mainWindow;
 
-function createWindow() {
-  // Create the browser window
+function createWindow() {  // Create the browser window
   mainWindow = new BrowserWindow({
-    width: 900,
-    height: 700,
+    width: 1000,
+    height: 900,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
-      enableRemoteModule: true
+      enableRemoteModule: true,
+      webviewTag: true  // Enable the webview tag
     },
     icon: path.join(__dirname, 'assets/icon.png')
   });
@@ -280,4 +282,270 @@ ipcMain.on('stop-diagnostics', (event) => {
   }
   
   event.reply('diagnostics-stopped');
+});
+
+// Save diagnostic output to a file
+ipcMain.on('save-diagnostic-output', (event, { diagnosticOutput }) => {
+  const timestamp = new Date().getTime();
+  const outputFileName = `diagnostic_output_${timestamp}.txt`;
+  const outputFilePath = path.join(app.getPath('userData'), outputFileName);
+  
+  fs.writeFileSync(outputFilePath, diagnosticOutput);
+  
+  event.reply('diagnostic-output-saved', { outputFilePath });
+});
+
+// Start packet capture
+ipcMain.on('start-packet-capture', (event, { url }) => {
+  const timestamp = new Date().getTime();
+  const captureFileName = `packet_capture_${timestamp}.txt`;
+  const captureFilePath = path.join(app.getPath('userData'), captureFileName);
+  
+  event.reply('diagnostic-output', {
+    output: `\n===== STARTING NETWORK INFORMATION CAPTURE =====\nURL: ${url}\n`
+  });
+  
+  // Get domain from URL
+  let domain = url.replace('https://', '').replace('http://', '').split('/')[0];
+  
+  // Use a simpler approach with individual commands
+  const captureNetworkInfo = async () => {
+    try {
+      let networkInfo = '';
+      
+      // Add header information
+      networkInfo += `NETWORK DIAGNOSTIC CAPTURE\n`;
+      networkInfo += `Target: ${domain}\n`;
+      networkInfo += `Time: ${new Date().toString()}\n`;
+      networkInfo += `----------------------------------------\n\n`;
+      
+      // TCP Connection check - using simpler ping instead of Test-NetConnection
+      networkInfo += `PING TEST:\n`;
+      await new Promise((resolve) => {
+        exec(`ping -n 4 ${domain}`, (error, stdout) => {
+          networkInfo += stdout + '\n\n';
+          resolve();
+        });
+      });
+      
+      // IP Configuration
+      networkInfo += `IP CONFIGURATION:\n`;
+      await new Promise((resolve) => {
+        exec('ipconfig /all', (error, stdout) => {
+          networkInfo += stdout + '\n\n';
+          resolve();
+        });
+      });
+      
+      // Connection statistics
+      networkInfo += `CONNECTION STATISTICS:\n`;
+      await new Promise((resolve) => {
+        exec('netstat -an | findstr ESTABLISHED', (error, stdout) => {
+          networkInfo += stdout + '\n\n';
+          resolve();
+        });
+      });
+      
+      // Route information
+      networkInfo += `ROUTE INFORMATION:\n`;
+      await new Promise((resolve) => {
+        exec('route print', (error, stdout) => {
+          networkInfo += stdout + '\n\n';
+          resolve();
+        });
+      });
+      
+      // DNS resolution
+      networkInfo += `DNS LOOKUP:\n`;
+      await new Promise((resolve) => {
+        exec(`nslookup ${domain}`, (error, stdout) => {
+          networkInfo += stdout + '\n\n';
+          resolve();
+        });
+      });
+      
+      // Write to file
+      require('fs').writeFileSync(captureFilePath, networkInfo);
+      
+      event.reply('diagnostic-output', {
+        output: `\n===== NETWORK INFORMATION CAPTURE COMPLETE =====\nFile saved at: ${captureFilePath}\n`
+      });
+      
+      event.reply('packet-capture-complete', { 
+        captureFilePath,
+        captureFileType: 'TXT'
+      });
+      
+    } catch (error) {
+      event.reply('diagnostic-output', {
+        output: `Warning: Network capture encountered an issue: ${error.message}\nWill continue with website loading.`
+      });
+      event.reply('packet-capture-error');
+    }
+  };
+  
+  // Start the capture process
+  captureNetworkInfo();
+  
+  // Immediately notify the renderer that we've started
+  event.reply('packet-capture-started', { captureFilePath });
+});
+
+// Capture screenshots of the website preview
+ipcMain.on('capture-screenshots', async (event, { webContentsId }) => {
+  try {
+    const timestamp = new Date().getTime();
+    const screenshotDir = path.join(app.getPath('userData'), 'screenshots');
+    
+    // Create screenshots directory if it doesn't exist
+    if (!fs.existsSync(screenshotDir)) {
+      fs.mkdirSync(screenshotDir, { recursive: true });
+    }
+    
+    // Get a reference to the webview's webContents
+    let webviewContents = null;
+    
+    if (webContentsId) {
+      try {
+        webviewContents = webContents.fromId(webContentsId);
+      } catch (e) {
+        console.error("Error accessing webContents:", e);
+      }
+    }
+    
+    if (!webviewContents) {
+      // Fallback: Try to capture the mainWindow instead
+      webviewContents = mainWindow.webContents;
+      event.reply('diagnostic-output', {
+        output: `\nNote: Using main window for screenshots instead of website preview\n`
+      });
+    }
+    
+    const screenshotFiles = [];
+    const totalScreenshots = 15;
+    
+    // Take 15 screenshots, 1 per second
+    for (let i = 1; i <= totalScreenshots; i++) {      // Update progress
+      event.reply('screenshot-progress', { 
+        current: i, 
+        total: totalScreenshots 
+      });
+      
+      // Capture screenshot - using simpler approach
+      try {
+        // Simple page capture without trying to calculate dimensions
+        const image = await webviewContents.capturePage();
+        const screenshotPath = path.join(screenshotDir, `screenshot_${timestamp}_${i}.png`);
+          // Save screenshot
+        fs.writeFileSync(screenshotPath, image.toPNG());
+        screenshotFiles.push(screenshotPath);
+      } catch (error) {
+        console.error(`Error capturing screenshot ${i}:`, error);
+        event.reply('diagnostic-output', {
+          output: `\nWarning: Error capturing screenshot ${i}: ${error.message}\n`
+        });
+      }
+      
+      // Wait for 1 second before taking next screenshot
+      if (i < totalScreenshots) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+    
+    event.reply('screenshots-complete', { 
+      screenshotFiles,
+      screenshotCount: screenshotFiles.length
+    });
+    
+    event.reply('diagnostic-output', {
+      output: `\n===== SCREENSHOT CAPTURE COMPLETE =====\n${screenshotFiles.length} screenshots captured\n`
+    });
+    
+  } catch (error) {
+    console.error('Screenshot capture error:', error);
+    event.reply('screenshot-error', { error: error.message });
+    event.reply('diagnostic-output', {
+      output: `\nWarning: Screenshot capture encountered an issue: ${error.message}\n`
+    });
+  }
+});
+
+// Open file location
+ipcMain.on('open-file-location', (event, { filePath }) => {
+  if (process.platform === 'win32') {
+    // On Windows, use explorer to open the folder and select the file
+    exec(`explorer.exe /select,"${filePath}"`);
+  } else if (process.platform === 'darwin') {
+    // On macOS
+    exec(`open -R "${filePath}"`);
+  } else {
+    // On Linux, just open the folder
+    exec(`xdg-open "${path.dirname(filePath)}"`);
+  }
+});
+
+// Create a zip file with all diagnostic data
+ipcMain.on('create-diagnostic-zip', (event, { diagnosticOutputText, filesToZip, targetUrl }) => {
+  try {
+    const timestamp = new Date().getTime();
+    // Extract domain from URL for filename
+    let urlForFilename = targetUrl || 'website';
+    urlForFilename = urlForFilename.replace(/^https?:\/\//, '')  // Remove http:// or https://
+                                   .replace(/[\/\\:*?"<>|]/g, '_'); // Replace invalid filename chars
+    
+    // Limit the length to avoid extremely long filenames
+    if (urlForFilename.length > 50) {
+      urlForFilename = urlForFilename.substring(0, 50);
+    }
+    
+    const zipFileName = `website_diagnostics_${urlForFilename}_${timestamp}.zip`;
+    const zipFilePath = path.join(app.getPath('userData'), zipFileName);
+    
+    // Create a new zip file
+    const zip = new AdmZip();
+    
+    // Add diagnostic output text to zip
+    if (diagnosticOutputText) {
+      const diagnosticOutputFile = path.join(app.getPath('userData'), `diagnostic_output_${timestamp}.txt`);
+      fs.writeFileSync(diagnosticOutputFile, diagnosticOutputText);
+      zip.addLocalFile(diagnosticOutputFile, "", "diagnostic_output.txt");
+    }
+    
+    // Add all files to the zip with meaningful names
+    filesToZip.forEach(file => {
+      if (fs.existsSync(file)) {
+        // Extract the base name of the file
+        const basename = path.basename(file);
+        let entryName = basename;
+        
+        // Give meaningful names based on file content/type
+        if (basename.startsWith('packet_capture_')) {
+          entryName = "network_information.txt";
+        } else if (basename.startsWith('screenshot_')) {
+          // Keep screenshot names as is, they have numbers
+        } else if (basename.startsWith('diagnostic_output_')) {
+          // Skip - we already added this with a better name
+          return;
+        }
+        
+        zip.addLocalFile(file, "", entryName);
+      }
+    });
+    
+    // Write the zip file to disk
+    zip.writeZip(zipFilePath);
+    
+    event.reply('zip-created', { zipFilePath });
+    
+    event.reply('diagnostic-output', {
+      output: `\n===== ZIP FILE CREATED =====\nAll diagnostic data has been compiled into: ${zipFilePath}\n`
+    });
+  } catch (error) {
+    console.error('Error creating zip file:', error);
+    event.reply('zip-error', { error: error.message });
+    
+    event.reply('diagnostic-output', {
+      output: `\nError creating zip file: ${error.message}\n`
+    });
+  }
 });

@@ -220,4 +220,135 @@ button:disabled {
   font-size: 14px;
   font-weight: normal;
   margin-left: 10px;
+  color: #f39c12; /* Orange color for the progress indicator */
+  animation: blink 1s infinite alternate;
+}
+
+@keyframes blink {
+  from { opacity: 1; }
+  to { opacity: 0.6; }
+}
+
+/* Website Preview Container */
+.website-preview-container {
+  background-color: #2c3e50;
+  color: #ecf0f1;
+  border-radius: 4px;
+  padding: 15px;
+  margin-top: 20px;
+}
+
+.website-frame-container {
+  width: 100%;
+  height: 700px; /* Larger fixed height to see more content */
+  border-radius: 4px;
+  overflow: hidden;
+  background-color: #fff;
+  position: relative;
+}
+
+#websitePreview {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background-color: #fff;
+}
+
+/* Packet Capture Buttons */
+.capture-button-container {
+  margin: 20px 0;
+  text-align: center;
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.capture-file-button {
+  background-color: #e67e22;
+  color: white;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.3s;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.capture-file-button:hover {
+  background-color: #d35400;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+/* Screenshot Progress Indicator */
+.screenshot-progress {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 10px 0;
+  background-color: #34495e;
+  padding: 10px;
+  border-radius: 4px;
+}
+
+.screenshot-progress-bar {
+  height: 10px;
+  background-color: #3498db;
+  border-radius: 5px;
+  transition: width 0.3s ease;
+}
+
+.screenshot-progress-text {
+  margin-left: 10px;
+  font-size: 14px;
+  color: #ecf0f1;
+}
+
+/* Zip File Download Button */
+.zip-button {
+  background-color: #8e44ad;
+  color: white;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.zip-button:hover {
+  background-color: #9b59b6;
+}
+
+.zip-button-icon {
+  margin-right: 8px;
+  font-size: 18px;
+}
+
+/* Result sections */
+.result-section {
+  margin-top: 15px;
+  padding: 10px;
+  background-color: #34495e;
+  border-radius: 4px;
+}
+
+.result-section h4 {
+  color: #ecf0f1;
+  margin-bottom: 8px;
+}
+
+/* Footer */
+.footer {
+  text-align: center;
+  margin-top: 20px;
+  padding: 10px;
+  color: #7f8c8d;
+  font-size: 14px;
+  border-top: 1px solid #ecf0f1;
+}
+
+.footer p {
+  margin: 0;
+  font-weight: 600;
+  color: #34495e;
 }

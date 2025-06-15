@@ -54,13 +54,21 @@
       <button id="stopButton" disabled>Stop Diagnostics</button>
       <button id="copyButton" disabled>Copy Results</button>
     </div>
-    
-    <!-- Results Output -->
+      <!-- Results Output -->
     <div class="output-container">
       <h3>Diagnostic Output <span id="progressStatus"></span></h3>
       <pre id="outputArea"></pre>
-    </div>
+    </div>    <!-- Website Preview -->
+    <div class="website-preview-container" id="websitePreviewContainer" style="display: none;">
+      <h3>Website Preview</h3>
+      <div class="website-frame-container">
+        <webview id="websitePreview" src="about:blank"></webview>
+      </div>    </div>
   </div>
+  
+  <footer class="footer">
+    <p>Developed by Neel</p>
+  </footer>
   
   <script src="renderer.js"></script>
 </body>
